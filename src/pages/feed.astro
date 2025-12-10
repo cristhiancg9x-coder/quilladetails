@@ -1,0 +1,93 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import LikeButton from '../components/LikeButton.jsx'; // <--- Importamos React
+import { supabase } from '../lib/supabase';
+
+// --- SEGURIDAD ---
+const accessToken = Astro.cookies.get("sb-access-token");
+const refreshToken = Astro.cookies.get("sb-refresh-token");
+
+if (!accessToken || !refreshToken) return Astro.redirect("/");
+
+const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+  access_token: accessToken.value,
+  refresh_token: refreshToken.value,
+});
+
+if (sessionError) return Astro.redirect("/");
+
+const currentUserId = sessionData.session?.user.id;
+
+// --- CARGAR DATOS ---
+// Ahora pedimos los posts Y TAMBIÉN consultamos si YO le di like
+const { data: posts } = await supabase
+  .from('posts')
+  .select('*, profiles(username, avatar_url, full_name), post_likes(user_id)') 
+  .order('created_at', { ascending: false });
+
+// Función auxiliar para saber si di like
+const checkUserLiked = (likesArray: any[]) => {
+    // Si mi ID está en la lista de likes de este post, devuelve true
+    return likesArray.some((like) => like.user_id === currentUserId);
+};
+
+// ... Funciones de nombre y avatar (igual que antes) ...
+const getDisplayName = (profile: any) => profile?.username || profile?.full_name || "Artesana";
+const getAvatar = (profile: any, userId: string) => profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
+---
+
+<Layout title="QuillaDetails - Feed">
+  <Navbar />
+
+  <main class="container mx-auto px-4 pb-24 pt-8 max-w-2xl">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-2xl font-bold tracking-wide">
+        Explorar <span class="text-cyber-rose text-3xl">.</span>
+      </h1>
+      <div class="w-10 h-10 rounded-full bg-gradient-to-r from-cyber-rose to-purple-600 p-[2px]">
+        <img src={getAvatar(null, currentUserId)} alt="Mi Avatar" class="rounded-full bg-deep-space" />
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-8">
+      {posts && posts.map((post) => (
+        <article class="group relative">
+            <div class="relative overflow-hidden rounded-3xl bg-white/5 border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+                
+                <a href={`/post/${post.id}`} class="block relative h-64 overflow-hidden cursor-pointer">
+                    <img src={post.image_url} alt={post.title} class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-deep-space via-transparent to-transparent opacity-90"></div>
+                </a>
+
+                <div class="absolute bottom-0 left-0 w-full p-6">
+                    <div class="flex justify-between items-end">
+                        <div class="flex items-center gap-3">
+                            <img src={getAvatar(post.profiles, post.user_id)} class="w-8 h-8 rounded-full border border-cyber-rose/50" />
+                            <div>
+                                <span class="text-xs text-cyber-rose font-bold tracking-wider uppercase mb-0 block">
+                                    @{getDisplayName(post.profiles)}
+                                </span>
+                                <h3 class="text-xl font-bold text-white leading-tight">{post.title}</h3>
+                            </div>
+                        </div>
+                        
+                        <LikeButton 
+                            client:load 
+                            postId={post.id} 
+                            userId={currentUserId}
+                            initialLikes={post.likes_count || 0}
+                            initialHasLiked={checkUserLiked(post.post_likes || [])}
+                        />
+
+                    </div>
+                    {post.description && (
+                        <p class="text-gray-300 text-sm mt-2 line-clamp-2 pl-11 opacity-80">{post.description}</p>
+                    )}
+                </div>
+            </div>
+        </article>
+      ))}
+    </div>
+  </main>
+</Layout>

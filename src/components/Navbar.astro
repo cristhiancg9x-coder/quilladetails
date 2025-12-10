@@ -1,0 +1,27 @@
+---
+// src/components/Navbar.astro
+---
+<nav class="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-md z-50">
+  <div class="
+    flex justify-around items-center px-6 py-4
+    bg-white/10 backdrop-blur-xl border border-white/20
+    rounded-full shadow-[0_0_20px_rgba(255,0,127,0.3)]
+  ">
+    <a href="/feed" class="text-white hover:text-cyber-rose transition-colors duration-300">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    </a>
+
+    <a href="/upload" class="
+      flex items-center justify-center w-12 h-12
+      bg-gradient-to-tr from-cyber-rose to-purple-600
+      rounded-full shadow-lg transform -translate-y-4 border-4 border-deep-space
+      hover:scale-110 transition-transform duration-300
+    ">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </a>
+
+    <a href="/profile" class="text-white hover:text-cyber-rose transition-colors duration-300">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    </a>
+  </div>
+</nav>

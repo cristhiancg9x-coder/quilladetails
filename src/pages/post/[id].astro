@@ -1,0 +1,137 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import LikeButton from '../../components/LikeButton.jsx';
+import { supabase } from '../../lib/supabase';
+
+// 1. Obtener el ID del post desde la URL (ej: /post/15)
+const { id } = Astro.params;
+
+// --- LÓGICA DE USUARIO ---
+const accessToken = Astro.cookies.get("sb-access-token");
+const refreshToken = Astro.cookies.get("sb-refresh-token");
+const { data: { session } } = await supabase.auth.setSession({
+  access_token: accessToken?.value,
+  refresh_token: refreshToken?.value,
+});
+const currentUserId = session?.user.id;
+
+// --- LÓGICA PARA GUARDAR COMENTARIO (POST Form) ---
+if (Astro.request.method === "POST") {
+    if (!currentUserId) return Astro.redirect("/"); 
+
+    const formData = await Astro.request.formData();
+    const content = formData.get("content") as string;
+
+    if (content) {
+        // AQUI ESTÁ EL CAMBIO: Capturamos el error
+        const { error } = await supabase.from('comments').insert({
+            user_id: currentUserId,
+            post_id: Number(id), // Aseguramos que sea número
+            content: content
+        });
+
+        if (error) {
+            console.error("❌ ERROR AL GUARDAR COMENTARIO:", error);
+            // Esto imprimirá el mensaje exacto en tu terminal donde corre 'pnpm dev'
+        } else {
+            console.log("✅ Comentario guardado con éxito");
+        }
+    }
+}
+
+// --- CARGAR DATOS DEL POST Y COMENTARIOS ---
+// A. Datos del Post
+const { data: post } = await supabase
+  .from('posts')
+  .select('*, profiles(username, avatar_url), post_likes(user_id)')
+  .eq('id', id)
+  .single();
+
+// B. Datos de los Comentarios (con perfil del autor)
+const { data: comments } = await supabase
+  .from('comments')
+  .select('*, profiles(username, avatar_url)')
+  .eq('post_id', id)
+  .order('created_at', { ascending: true }); // Los más viejos arriba
+
+if (!post) return Astro.redirect("/feed"); // Si no existe, al feed
+
+// Helpers
+const checkUserLiked = (likes: any[]) => likes.some(l => l.user_id === currentUserId);
+const getAvatar = (p: any, uid: string) => p?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
+---
+
+<Layout title={`Foto de ${post.profiles?.username} - QuillaDetails`}>
+  <Navbar />
+  
+  <main class="container mx-auto px-0 pb-24 md:px-4 max-w-2xl min-h-screen">
+    
+    <a href="/feed" class="absolute top-6 left-6 z-20 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-cyber-rose/50 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+    </a>
+
+    <div class="relative w-full h-[50vh] md:rounded-b-3xl overflow-hidden shadow-2xl">
+        <img src={post.image_url} class="w-full h-full object-cover" />
+        <div class="absolute inset-0 bg-gradient-to-t from-deep-space via-transparent to-transparent"></div>
+        
+        <div class="absolute bottom-0 w-full p-6">
+            <h1 class="text-3xl font-bold text-white mb-2">{post.title}</h1>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                     <img src={getAvatar(post.profiles, post.user_id)} class="w-10 h-10 rounded-full border-2 border-cyber-rose" />
+                     <span class="text-cyber-rose font-bold">@{post.profiles?.username || "Artesana"}</span>
+                </div>
+                <LikeButton client:load postId={post.id} userId={currentUserId} initialLikes={post.likes_count} initialHasLiked={checkUserLiked(post.post_likes || [])} />
+            </div>
+        </div>
+    </div>
+
+    <div class="px-6 py-8">
+        <p class="text-gray-300 text-lg mb-8 leading-relaxed border-l-4 border-cyber-rose pl-4 bg-white/5 py-2 rounded-r-xl">
+            {post.description || "Sin descripción."}
+        </p>
+
+        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            Comentarios <span class="text-sm bg-white/10 px-2 py-0.5 rounded-full text-gray-400">{comments?.length || 0}</span>
+        </h3>
+
+        <div class="flex flex-col gap-6 mb-10">
+            {comments && comments.map((comment) => (
+                <div class="flex gap-3 animate-fade-in">
+                    <img src={getAvatar(comment.profiles, comment.user_id)} class="w-10 h-10 rounded-full bg-gray-800" />
+                    <div class="bg-white/5 p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-white/5 flex-1">
+                        <span class="text-cyber-rose text-xs font-bold block mb-1">
+                            @{comment.profiles?.username || "Usuario"}
+                        </span>
+                        <p class="text-gray-200 text-sm">{comment.content}</p>
+                    </div>
+                </div>
+            ))}
+            {comments?.length === 0 && <p class="text-gray-500 italic">Sé la primera en comentar...</p>}
+        </div>
+
+        {currentUserId ? (
+            <form method="POST" class="fixed bottom-24 left-0 w-full px-4 md:relative md:bottom-auto md:px-0">
+                <div class="flex gap-2 items-center bg-deep-space/80 backdrop-blur-xl p-2 rounded-2xl border border-cyber-rose/30 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+                    <img src={getAvatar(null, currentUserId)} class="w-8 h-8 rounded-full ml-2" />
+                    <input 
+                        type="text" 
+                        name="content" 
+                        placeholder="Escribe un comentario bonito..." 
+                        required
+                        autocomplete="off"
+                        class="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500"
+                    />
+                    <button type="submit" class="p-3 bg-cyber-rose rounded-xl text-white hover:scale-105 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                    </button>
+                </div>
+            </form>
+        ) : (
+            <p class="text-center text-cyber-rose">Inicia sesión para comentar</p>
+        )}
+    </div>
+
+  </main>
+</Layout>

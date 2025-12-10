@@ -1,0 +1,17 @@
+# .gitignore
+
+# Dependencias (Nunca se suben, pesan demasiado)
+node_modules/
+
+# Build de producción
+dist/
+
+# Variables de entorno (SECRETOS - NUNCA SUBIR)
+.env
+.env.*
+
+# Carpetas de sistema
+.DS_Store
+Thumbs.db
+.vscode/
+.astro/

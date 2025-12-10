@@ -1,0 +1,144 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import { supabase } from '../lib/supabase';
+
+// --- SEGURIDAD Y DATOS ---
+const accessToken = Astro.cookies.get("sb-access-token");
+const refreshToken = Astro.cookies.get("sb-refresh-token");
+
+if (!accessToken || !refreshToken) return Astro.redirect("/");
+
+const { data: { session }, error } = await supabase.auth.setSession({
+  access_token: accessToken.value,
+  refresh_token: refreshToken.value,
+});
+
+if (error || !session) return Astro.redirect("/api/auth/signout");
+
+const user = session.user;
+
+// --- LÓGICA DE ACTUALIZACIÓN (Cuando das clic a Guardar) ---
+let message = "";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const username = formData.get("username") as string;
+  const bio = formData.get("bio") as string;
+  const website = formData.get("website") as string;
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ 
+        username, 
+        bio, 
+        website,
+        updated_at: new Date() 
+    })
+    .eq('id', user.id);
+
+  if (updateError) {
+    message = "Error al actualizar: " + updateError.message;
+  } else {
+    message = "¡Perfil actualizado con éxito!";
+  }
+}
+
+// --- CARGAR DATOS ACTUALES ---
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('*')
+  .eq('id', user.id)
+  .single();
+
+// Avatar por defecto si no ha subido uno (usamos DiceBear)
+const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
+---
+
+<Layout title="Mi Perfil - QuillaDetails">
+  <Navbar />
+  
+  <main class="min-h-screen pb-24 flex flex-col items-center pt-10 px-4">
+    
+    <div class="relative mb-8 text-center">
+        <div class="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-cyber-rose to-purple-600 mx-auto">
+            <img 
+                src={avatarUrl} 
+                alt="Avatar" 
+                class="w-full h-full rounded-full bg-deep-space object-cover border-4 border-deep-space"
+            />
+        </div>
+        <h1 class="text-2xl font-bold mt-4 text-white">
+            {profile?.username || "Usuario Sin Nombre"}
+        </h1>
+        <p class="text-cyber-rose text-sm font-medium tracking-wide">
+            {profile?.full_name || user.email}
+        </p>
+    </div>
+
+    {message && (
+        <div class="mb-6 p-3 rounded-xl bg-cyber-rose/20 border border-cyber-rose/50 text-cyber-rose text-sm font-bold animate-pulse">
+            {message}
+        </div>
+    )}
+
+    <form method="POST" class="w-full max-w-md flex flex-col gap-5">
+        
+        <div class="bg-white/5 p-6 rounded-3xl border border-white/10 backdrop-blur-md">
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyber-rose" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                Editar Información
+            </h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-gray-400 font-bold ml-1">NOMBRE DE USUARIO</label>
+                    <input 
+                        type="text" 
+                        name="username" 
+                        value={profile?.username || ''}
+                        placeholder="@tu_nombre_cyber"
+                        class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-cyber-rose transition-colors mt-1"
+                    />
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-400 font-bold ml-1">BIOGRAFÍA</label>
+                    <textarea 
+                        name="bio" 
+                        rows="3"
+                        placeholder="Cuéntanos sobre ti..."
+                        class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-cyber-rose transition-colors mt-1"
+                    >{profile?.bio || ''}</textarea>
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-400 font-bold ml-1">SITIO WEB</label>
+                    <input 
+                        type="url" 
+                        name="website" 
+                        value={profile?.website || ''}
+                        placeholder="https://..."
+                        class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-cyber-rose transition-colors mt-1"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="
+            w-full py-3 
+            bg-white text-deep-space font-bold rounded-xl 
+            hover:bg-cyber-rose hover:text-white transition-all
+            shadow-lg
+        ">
+            GUARDAR CAMBIOS
+        </button>
+    </form>
+
+    <a href="/api/auth/signout" class="mt-8 text-gray-500 text-sm hover:text-red-500 transition-colors flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+        Cerrar Sesión
+    </a>
+
+  </main>
+</Layout>

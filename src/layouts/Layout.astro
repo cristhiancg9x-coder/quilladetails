@@ -1,0 +1,53 @@
+---
+// Definimos las propiedades que aceptará el Layout (como el título de la página)
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="QuillaDetails - La red social del futuro para creadoras" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;600;800&display=swap" rel="stylesheet">
+	</head>
+	
+    <body class="bg-deep-space text-white min-h-screen font-sans overflow-x-hidden selection:bg-cyber-rose selection:text-white">
+		
+        <slot />
+        
+	</body>
+</html>
+
+<style is:global>
+	/* Forzamos la fuente Outfit en todo el sitio */
+	:root {
+		font-family: 'Outfit', sans-serif;
+	}
+
+    /* Personalización del Scrollbar para que sea futurista (Rosa neón) */
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #0f0c29; 
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #ff007f; 
+        border-radius: 5px;
+        border: 2px solid #0f0c29;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #d6006b; 
+    }
+</style>
