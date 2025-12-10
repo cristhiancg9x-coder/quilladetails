@@ -9,7 +9,7 @@ export default function InspirationWidget() {
     try {
       // ACTUALIZADO: Llamamos a la nueva ruta '/cerebro' que configuramos en vercel.json
       // Esto evita el choque con el Login de Astro
-      const response = await fetch('/cerebro/idea');
+      const response = await fetch('/api/brain/idea');
       
       if (!response.ok) {
         throw new Error('Error de red al contactar al cerebro');

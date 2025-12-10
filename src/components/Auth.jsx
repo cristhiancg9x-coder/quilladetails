@@ -50,7 +50,7 @@ export default function Auth() {
         const { access_token, refresh_token } = data.session;
 
         // Enviamos las cookies al servidor Astro
-        const response = await fetch("/api/auth/signin", {
+        const response = await fetch("/session/auth/signin", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ access_token, refresh_token }),

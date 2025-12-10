@@ -9,7 +9,7 @@ export default function ColorPalette({ imageUrl }) {
       try {
         // Codificamos la URL de la imagen para enviarla segura
         const encodedUrl = encodeURIComponent(imageUrl);
-        const res = await fetch(`/cerebro/analizar-colores?url_imagen=${encodedUrl}`);
+        const res = await fetch(`/api/brain/analizar-colores?url_imagen=${encodedUrl}`);
         const data = await res.json();
         setColors(data.colores || []);
       } catch (err) {
