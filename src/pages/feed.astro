@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import LikeButton from '../components/LikeButton.jsx'; // <--- Importamos React
 import { supabase } from '../lib/supabase';
+import InspirationWidget from '../components/InspirationWidget.jsx';
 
 // --- SEGURIDAD ---
 const accessToken = Astro.cookies.get("sb-access-token");
@@ -49,7 +50,7 @@ const getAvatar = (profile: any, userId: string) => profile?.avatar_url || `http
         <img src={getAvatar(null, currentUserId)} alt="Mi Avatar" class="rounded-full bg-deep-space" />
       </div>
     </div>
-
+    <InspirationWidget client:visible />
     <div class="flex flex-col gap-8">
       {posts && posts.map((post) => (
         <article class="group relative">
