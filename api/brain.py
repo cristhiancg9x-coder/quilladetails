@@ -1,12 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import random
 import requests
 from io import BytesIO
 from colorthief import ColorThief
+from PIL import Image  # <--- Importamos la librería de imágenes
 
-# CAMBIO IMPORTANTE: root_path
-# Le decimos a FastAPI que las URLs que le llegan empiezan con /api/brain
+# Configuración inicial
 app = FastAPI(root_path="/api/brain")
 
 app.add_middleware(
@@ -32,28 +32,43 @@ def idea_creativa():
     ]
     return {"sugerencia": random.choice(ideas)}
 
-# --- NUEVA FUNCIÓN IA: ANALIZADOR DE COLORES ---
 @app.get("/analizar-colores")
 def analizar_colores(url_imagen: str):
+    print(f"Iniciando análisis inteligente de: {url_imagen}")
     try:
-        # 1. Descargar la imagen de la URL (Supabase)
-        response = requests.get(url_imagen)
+        # 1. Descargar imagen
+        response = requests.get(url_imagen, timeout=10)
         response.raise_for_status()
         
-        # 2. Convertir la imagen a bytes en memoria
-        imagen_memoria = BytesIO(response.content)
+        # 2. Abrir con Pillow para arreglar transparencias
+        img_original = Image.open(BytesIO(response.content))
         
-        # 3. Usar ColorThief para extraer la paleta
-        ct = ColorThief(imagen_memoria)
-        # Pedimos 4 colores dominantes
+        # Si tiene transparencia (RGBA), poner fondo BLANCO
+        if img_original.mode in ('RGBA', 'LA') or (img_original.mode == 'P' and 'transparency' in img_original.info):
+            # Crear fondo blanco
+            fondo = Image.new('RGB', img_original.size, (255, 255, 255))
+            # Convertir a RGBA para poder usarla de máscara
+            if img_original.mode != 'RGBA':
+                img_original = img_original.convert('RGBA')
+            # Pegar la imagen sobre el fondo blanco
+            fondo.paste(img_original, mask=img_original.split()[3])
+            img_final = fondo
+        else:
+            img_final = img_original.convert('RGB')
+
+        # 3. Guardar la imagen arreglada en memoria para ColorThief
+        buffer_arreglado = BytesIO()
+        img_final.save(buffer_arreglado, format="JPEG")
+        buffer_arreglado.seek(0)
+
+        # 4. Extraer colores ahora sí
+        ct = ColorThief(buffer_arreglado)
         paleta = ct.get_palette(color_count=5, quality=10)
-        
-        # 4. Convertir RGB a HEX (ej: #FF0000)
         colores_hex = ['#%02x%02x%02x' % color for color in paleta]
         
         return {"colores": colores_hex}
 
     except Exception as e:
-        print(f"Error analizando imagen: {e}")
-        # Si falla, devolvemos una lista vacía para no romper la app
-        return {"colores": []}
+        print(f"Error procesando imagen: {str(e)}")
+        # Si falla, devolvemos una paleta de seguridad (no negro)
+        return {"colores": ["#DDDDDD", "#AAAAAA", "#888888"], "error": str(e)}
