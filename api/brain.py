@@ -5,7 +5,9 @@ import requests
 from io import BytesIO
 from colorthief import ColorThief
 
-app = FastAPI()
+# CAMBIO IMPORTANTE: root_path
+# Le decimos a FastAPI que las URLs que le llegan empiezan con /api/brain
+app = FastAPI(root_path="/api/brain")
 
 app.add_middleware(
     CORSMiddleware,
