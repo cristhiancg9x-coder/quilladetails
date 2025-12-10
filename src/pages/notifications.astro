@@ -1,0 +1,89 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import { supabase } from '../lib/supabase';
+
+// 1. Seguridad
+const accessToken = Astro.cookies.get("sb-access-token");
+const refreshToken = Astro.cookies.get("sb-refresh-token");
+if (!accessToken || !refreshToken) return Astro.redirect("/");
+
+const { data: { session } } = await supabase.auth.setSession({
+  access_token: accessToken.value,
+  refresh_token: refreshToken.value,
+});
+if (!session) return Astro.redirect("/");
+
+// 2. Obtener Notificaciones
+const { data: notifications } = await supabase
+  .from('notifications')
+  .select(`
+    *,
+    actor:actor_id (username, avatar_url),
+    post:post_id (image_url)
+  `)
+  .eq('user_id', session.user.id)
+  .order('created_at', { ascending: false });
+
+// 3. Marcar todo como LEÍDO al entrar
+await supabase
+  .from('notifications')
+  .update({ is_read: true })
+  .eq('user_id', session.user.id)
+  .eq('is_read', false);
+
+// Helper para fecha
+const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+};
+---
+
+<Layout title="Notificaciones - QuillaDetails">
+  <Navbar />
+  
+  <main class="container mx-auto px-4 pt-8 pb-24 max-w-2xl min-h-screen">
+    
+    <h1 class="text-2xl font-bold tracking-wide mb-6">
+        Novedades <span class="text-cyber-rose">.</span>
+    </h1>
+
+    <div class="flex flex-col gap-4">
+        {notifications && notifications.length > 0 ? (
+            notifications.map((notif) => (
+                <a href={`/post/${notif.post_id}`} class={`
+                    flex items-center gap-4 p-4 rounded-2xl border transition-all
+                    ${notif.is_read ? 'bg-white/5 border-white/5' : 'bg-cyber-rose/10 border-cyber-rose/30'}
+                    hover:bg-white/10
+                `}>
+                    <div class="w-12 h-12 rounded-full overflow-hidden border border-white/20 shrink-0">
+                        <img 
+                            src={notif.actor?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${notif.actor_id}`} 
+                            class="w-full h-full object-cover" 
+                        />
+                    </div>
+
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-200">
+                            <span class="font-bold text-white">{notif.actor?.username || "Alguien"}</span> 
+                            comentó en tu publicación.
+                        </p>
+                        <span class="text-xs text-gray-500 mt-1 block">{formatDate(notif.created_at)}</span>
+                    </div>
+
+                    {notif.post && (
+                        <div class="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0">
+                            <img src={notif.post.image_url} class="w-full h-full object-cover opacity-80" />
+                        </div>
+                    )}
+                </a>
+            ))
+        ) : (
+            <div class="text-center py-20 text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                <p>Todo está tranquilo por aquí.</p>
+            </div>
+        )}
+    </div>
+
+  </main>
+</Layout>

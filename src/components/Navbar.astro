@@ -1,27 +1,61 @@
 ---
-// src/components/Navbar.astro
+import { supabase } from '../lib/supabase';
+
+// Verificar si hay notificaciones sin leer
+const accessToken = Astro.cookies.get("sb-access-token");
+const refreshToken = Astro.cookies.get("sb-refresh-token");
+let hasNotifications = false;
+let userAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest";
+
+if (accessToken && refreshToken) {
+  const { data: { session } } = await supabase.auth.setSession({
+    access_token: accessToken.value,
+    refresh_token: refreshToken.value,
+  });
+
+  if (session) {
+    userAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`;
+    
+    // Consultar si hay algo sin leer (is_read = false)
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', session.user.id)
+      .eq('is_read', false);
+      
+    hasNotifications = count ? count > 0 : false;
+  }
+}
 ---
-<nav class="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-md z-50">
-  <div class="
-    flex justify-around items-center px-6 py-4
-    bg-white/10 backdrop-blur-xl border border-white/20
-    rounded-full shadow-[0_0_20px_rgba(255,0,127,0.3)]
-  ">
-    <a href="/feed" class="text-white hover:text-cyber-rose transition-colors duration-300">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+
+<nav class="fixed bottom-0 left-0 w-full bg-deep-space/90 backdrop-blur-lg border-t border-white/10 px-6 py-4 z-50 md:top-0 md:bottom-auto md:border-b md:border-t-0">
+  <div class="max-w-2xl mx-auto flex justify-between items-center relative">
+    
+    <a href="/feed" class="text-gray-400 hover:text-cyber-rose transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
     </a>
 
-    <a href="/upload" class="
-      flex items-center justify-center w-12 h-12
-      bg-gradient-to-tr from-cyber-rose to-purple-600
-      rounded-full shadow-lg transform -translate-y-4 border-4 border-deep-space
-      hover:scale-110 transition-transform duration-300
-    ">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    <a href="/upload" class="absolute left-1/2 -translate-x-1/2 -top-6 bg-gradient-to-r from-cyber-rose to-purple-600 p-3 rounded-full shadow-[0_0_20px_rgba(255,0,127,0.5)] border-4 border-deep-space hover:scale-110 transition-transform">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
     </a>
 
-    <a href="/profile" class="text-white hover:text-cyber-rose transition-colors duration-300">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-    </a>
+    <div class="flex gap-6 items-center">
+        
+        <a href="/notifications" class="relative text-gray-400 hover:text-cyber-rose transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {hasNotifications && (
+                <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-deep-space animate-pulse"></span>
+            )}
+        </a>
+
+        <a href="/profile" class="text-gray-400 hover:text-white transition-colors">
+            <div class="w-7 h-7 rounded-full overflow-hidden border border-white/20">
+                <img src={userAvatar} alt="Perfil" class="w-full h-full object-cover" />
+            </div>
+        </a>
+    </div>
+
   </div>
 </nav>
