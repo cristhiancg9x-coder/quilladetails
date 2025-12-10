@@ -65,7 +65,7 @@ export default function UploadForm({ userId }) {
 
       // 4. Guardar en Base de Datos
       // Asegúrate de que este endpoint exista (/pages/api/create_post.ts)
-      const response = await fetch('/session/create_post', {
+      const response = await fetch('/guardar_post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

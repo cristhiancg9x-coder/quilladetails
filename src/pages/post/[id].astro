@@ -12,8 +12,8 @@ const { id } = Astro.params;
 const accessToken = Astro.cookies.get("sb-access-token");
 const refreshToken = Astro.cookies.get("sb-refresh-token");
 const { data: { session } } = await supabase.auth.setSession({
-  access_token: accessToken?.value,
-  refresh_token: refreshToken?.value,
+  access_token: accessToken?.value || "",
+  refresh_token: refreshToken?.value || "",
 });
 const currentUserId = session?.user.id;
 
@@ -113,7 +113,7 @@ if (post.image_url) {
         <p class="text-gray-300 text-lg mb-8 leading-relaxed border-l-4 border-cyber-rose pl-4 bg-white/5 py-2 rounded-r-xl">
             {post.description || "Sin descripción."}
         </p>
-        
+
         <ColorPalette client:visible imageUrl={post.image_url} />
 
         <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
