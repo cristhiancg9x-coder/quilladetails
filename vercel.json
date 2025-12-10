@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/cerebro/(.*)", "destination": "/python_service/brain.py" }
+    { "source": "/cerebro/(.*)", "destination": "/api/brain.py" }
   ]
 }
