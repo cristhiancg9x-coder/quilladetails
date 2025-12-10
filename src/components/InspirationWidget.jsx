@@ -7,13 +7,21 @@ export default function InspirationWidget() {
   const getIdea = async () => {
     setLoading(true);
     try {
-      // Llamamos a TU cerebro Python
-      const response = await fetch('/api/brain/idea');
+      // ACTUALIZADO: Llamamos a la nueva ruta '/cerebro' que configuramos en vercel.json
+      // Esto evita el choque con el Login de Astro
+      const response = await fetch('/cerebro/idea');
+      
+      if (!response.ok) {
+        throw new Error('Error de red al contactar al cerebro');
+      }
+
       const data = await response.json();
       setIdea(data.sugerencia);
+
     } catch (error) {
       console.error("El cerebro está dormido:", error);
-      setIdea("Intenta mezclar colores neón con texturas naturales.");
+      // Fallback por si la API falla, para que el usuario siempre vea algo
+      setIdea("Intenta mezclar colores neón con texturas naturales del bosque.");
     }
     setLoading(false);
   };
@@ -33,7 +41,7 @@ export default function InspirationWidget() {
             <p className="text-2xl font-light text-cyber-rose italic">"{idea}"</p>
             <button 
                 onClick={getIdea}
-                className="mt-4 text-xs text-gray-400 hover:text-white underline"
+                className="mt-4 text-xs text-gray-400 hover:text-white underline cursor-pointer z-20 relative"
             >
                 Pedir otra idea
             </button>
@@ -52,6 +60,7 @@ export default function InspirationWidget() {
                 relative z-10 px-6 py-2 rounded-full font-bold text-sm
                 bg-white text-deep-space hover:bg-cyber-rose hover:text-white
                 transition-all transform hover:scale-105
+                disabled:opacity-50 disabled:cursor-wait
             "
             >
             {loading ? 'Pensando...' : 'Inspirarme'}

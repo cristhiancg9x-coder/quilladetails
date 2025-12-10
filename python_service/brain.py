@@ -12,6 +12,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+@app.get("/idea") 
+def idea_creativa():
+    import random
 
 # Ruta de prueba
 @app.get("/api/brain")
@@ -29,3 +32,4 @@ def idea_creativa():
         "Haz una lámpara con botellas recicladas"
     ]
     return {"sugerencia": random.choice(ideas)}
+
